@@ -1,0 +1,1982 @@
+
+{ SUPERGFX by Michal 'REGi' Rygielski 2002 rok/year }
+{ kontakt/contact: }
+{ email: mrygielski@o2.pl }
+{ www: http://regi.gamedev.pl }
+
+unit supergfx;
+
+interface
+
+const
+     ver = '3.0';
+     rad = 180/pi;
+     cur : array[1..9, 1..9] of byte =
+     ((1,1,1,1,1,1,1,0,0),
+      (1,2,2,2,2,1,0,0,0),
+      (1,2,2,2,1,0,0,0,0),
+      (1,2,2,2,2,1,0,0,0),
+      (1,2,1,2,2,2,1,0,0),
+      (1,1,0,1,2,2,2,1,0),
+      (1,0,0,0,1,2,2,2,1),
+      (0,0,0,0,0,1,2,1,0),
+      (0,0,0,0,0,0,1,0,0));
+
+type
+    ekran = array[0..63999] of byte;
+    tsprite = array[1..100, 1..100] of byte;
+    strtype = (normal, hide);
+    Tpalette = array[0..255, 1..3] of byte;
+    Tfont = array[1..255, 1..16, 1..8] of byte;
+    Tfont2 = array[1..255, 0..15] of byte;
+    iloscbitow = 0..7;
+    spritexy = 1..100;
+
+var
+   bufor : ^ekran;
+
+{*********************************** GRAPH **********************************}
+procedure initgfx13h;
+procedure closegfx13h;
+procedure pokazgrafike;
+procedure pokazgrafike2;
+procedure cls(col : byte);
+procedure windows(x, y, x2, y2 : word);
+procedure putpixel(x, y, c : integer);
+function getpixel(x, y : integer) : byte;
+procedure outtextxy(x, y : integer; scx, scy : byte; c : byte; str : string; m : boolean);
+procedure outtextxygrind(x, y : integer; scx, scy : byte; c : byte; str : string; m : boolean);
+procedure line(x1, y1, x2, y2 : integer; c : byte);
+procedure hline(x1, x2, y : integer; c : byte);
+procedure vline(x, y1, y2 : integer; c : byte);
+procedure bar(x, y, d, s : integer; color : byte);
+procedure box(x, y, r : integer; c1, c2 : byte; full : boolean);
+procedure rectangle(x, y, d, s : integer; kolor : byte);
+procedure ellipse(exc, eyc, ea, eb, color : integer);
+procedure circle(exc, eyc, e, color : integer);
+procedure polygon(x1, y1, x2, y2, x3, y3, x4, y4 : integer; color : byte);
+procedure setcolor(col : byte; r, g, b : byte);
+procedure getcolor(col : byte; var r, g, b : byte);
+procedure setpal(pal : Tpalette);
+procedure getpal(var pal : Tpalette);
+procedure loadpal(filename: string);
+procedure savepal(filename: string);
+procedure strtext(xx, yy, ods, tlo, kolor, ile : integer; var tekst : string; w : strtype);
+procedure fadeup(pal : Tpalette; ile : word);
+procedure fadedown(ile : word);
+procedure flood(x, y : integer; col : byte);
+procedure savetopaintfile(x, y, d, s : integer; name : string);
+procedure openpaintfile(x, y : integer; name : string);
+function paintdefx(name : string) : byte;
+function paintdefy(name : string) : byte;
+procedure opengfxfile(plik : string; tlo : byte);
+procedure savegfxfile(plik : string);
+procedure saveraw(filename : string);
+procedure loadraw(filename : string; c1, c2 : byte);
+procedure pobierz_ekran_do(x, y, d, s : integer; var tab : ekran);
+procedure draw_random(x, y, d, s : integer; var tab : ekran; col : byte; b : boolean);
+procedure rysuj_ekran(x, y, d, s : integer; var tab : ekran; col : byte; b : boolean);
+procedure czysc_bufor(var buf : ekran; nr : byte);
+procedure rotate_sprite(k : real; var tab : tsprite; x, y, maxx, maxy : integer; hidecol : byte);
+procedure scale_sprite(x, y, sizeimagex, sizeimagey, sizex, sizey : integer; var sprite : Tsprite);
+procedure save_sprite(x, y, d, s : spritexy; var tab : tsprite);
+{*********************************** SUPER **********************************}
+procedure blur(xx, yy, dd, ss : integer);
+procedure fader(xx, yy, dd, ss : integer);
+procedure grind(xx, yy, dd, ss : integer);
+procedure fire(xx, yy, dd, ss : integer);
+{************************************ INNE **********************************}
+procedure czysc_ekran;
+procedure waitretrace;
+function readkey : char;
+function keypressed : boolean;
+function enterkey : boolean;
+procedure delay(ile : word);
+function divide_number(number : word; divide : word) : boolean;
+function numstr(number : Longint) : string;
+function numstrreal(number : real; ile : byte) : string;
+function numstrboolean(opcja : boolean) : string;
+function is_file(plik : string) : boolean;
+procedure nosound;
+procedure sound(hz : word);
+procedure dzwiek(hz, mz : word);
+function getbit(zmienna : byte; nr : iloscbitow) : boolean;
+function setbit(zmienna : byte; nr : iloscbitow) : byte;
+function clrbit(zmienna : byte; nr : iloscbitow) : byte;
+function ile_procent_z(ile, z_ilu : real) : real;
+{************************************ KEYS **********************************}
+procedure capslock(on : boolean);
+procedure numlock(on : boolean);
+procedure scrolllock(on : boolean);
+function capslockon : boolean;
+function numlockon : boolean;
+function scrollockon : boolean;
+{************************************ FONT **********************************}
+procedure new_font(name : string; var fnt : Tfont);
+procedure new_font2(name : string; var font : Tfont2);
+procedure outtextfntxy(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont);
+procedure outtextfntxy_center(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont);
+procedure outtextfntxy_rainbow(x, y : integer; o, colile, styl, typ : byte; text : string; var fnt : Tfont);
+procedure outtextfntxy_rainbow_center(x, y : integer; o, colile, styl, typ : byte; text : string; var fnt : Tfont);
+procedure outtextfntxy2(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont2);
+procedure outtextfntxy2_center(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont2);
+procedure outtextfntxy2_rainbow(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont2);
+procedure outtextfntxy2_rainbow_center(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont2);
+{*********************************** MOUSE **********************************}
+function initmouse : boolean;
+procedure setmousepos(x, y : integer);
+function mousex : word;
+function mousey : word;
+procedure setmousewindow(x1, y1, x2, y2 : integer);
+function mousein(x, y, x1, y1, x2, y2 : integer) : boolean;
+procedure showmouse;
+procedure hidemouse;
+function leftbutton : boolean;
+function rightbutton : boolean;
+procedure copy_screen(x, y, mx, my : integer);
+procedure put_screen(x, y, mx, my : integer);
+procedure draw_normal_cur(mx, my : integer; c1, c2 : byte);
+
+implementation
+
+const
+     scr : pointer = ptr($0A000,0);
+
+var
+   sprcolor : byte;
+   maxx, maxy, minx, miny : integer;
+
+procedure initgfx13h;
+begin
+     asm
+        mov ah, 00h
+        mov al, 13h
+        int $10
+     end;
+     windows(0,0,319,199);
+end;
+
+procedure closegfx13h;
+begin
+     dispose(bufor);
+     asm
+        mov Ah, 00h
+        mov Al, 03h
+        int $10
+     end;
+end;
+
+procedure blur(xx, yy, dd, ss : integer);
+
+var
+   x , y : integer;
+   c : byte;
+
+begin
+ for x:= xx to dd do
+  for y:= yy to ss do
+  begin
+   c:=(bufor^[320*y-1+x] + bufor^[320*(y)+x] + bufor^[320*y+x+1] +
+       bufor^[320*(y-3)+x]) div 4;
+   if (c > 0) then dec(c);
+   bufor^[320*(y-1)+x]:=c;
+  end;
+end;
+
+procedure fader(xx, yy, dd, ss : integer);
+
+var
+   x , y : integer;
+   c : byte;
+
+begin
+     for x:= xx to dd do
+     for y:= yy to ss do
+     begin
+          c:=(bufor^[320*y+x]+bufor^[320*(y)+x]+bufor^[320*y+x]+bufor^[320*(y)+x]) div 4;
+          if (c>0) then dec(c);
+          bufor^[320*(y)+x]:=c;
+     end;
+end;
+
+procedure grind(xx, yy, dd, ss : integer);
+var x,y:integer;
+    c:byte;
+begin
+ for x:=xx to dd do
+  for y:=yy to ss do
+  begin
+   c:=(bufor^[320*y+x] + bufor^[320*(y-random(2))+x] + bufor^[320*y+x+random(2)] +
+       bufor^[320*(y+1)+x]) div 5;
+   if (c > 0) then dec(c);
+   bufor^[320*(y)+x]:=c;
+  end;
+end;
+
+procedure fire(xx, yy, dd, ss : integer);
+
+var
+   x , y : integer;
+   c : byte;
+
+begin
+ for x:= xx to dd do
+  for y:= yy to ss do
+  begin
+   c:=(bufor^[320*y+x]+bufor^[320*y+x]) div 2;
+   if (c > 0) then dec(c);
+   bufor^[320*(y+random(3)-1)+x+random(3)-1]:=c;
+  end;
+end;
+
+procedure windows(x, y, x2, y2 : word);
+begin
+     minx:=x;
+     miny:=y;
+     maxx:=x2;
+     maxy:=y2;
+end;
+
+procedure czysc_ekran; assembler;
+asm
+   mov ax,0a000h
+   mov es,ax
+   xor di,di
+   mov ax,0
+   mov cx,16000
+   db $66
+   rep stosw
+end;
+
+procedure putpixel(x, y, c : integer);
+begin
+     if (x>=minx) and (x<=maxx) and (y>=miny) and (y<=maxy) then
+     begin
+          bufor^[y*320+x]:=c;
+     end;
+end;
+
+function getpixel(x, y : integer) : byte;
+begin
+     getpixel:=sprcolor;
+     if ((x>=0) and (x<320)) and ((y>=0) and (y<200)) then getpixel:=bufor^[x+320*y];
+end;
+
+procedure outtextxy(x, y : integer; scx, scy : byte; c : byte; str : string; m : boolean);
+
+var
+  strpos : byte;
+  fontchr : byte;
+  fontpos : byte;
+  bitpos : byte;
+  a, b : integer;
+
+begin
+     if m=false then
+     begin
+          for strpos:= 1 to length(str) do
+          for fontpos:= 0 to 7 do
+          begin
+               fontchr:=mem[$FFA6:$E+(ord(str[strpos]) shl 3)+fontpos];
+               for bitpos:= 7 downto 0 do
+               if (fontchr and (1 shl bitpos)) <> 0 then
+               for a:= 1 to scx do
+               for b:= 1 to scy do
+               begin
+                    putpixel(a+round(x+(strpos*(8*scx))+(scx*(8-bitpos))-8),b+round(y+(scy*fontpos)),c);
+               end;
+          end;
+     end;
+     if m=true then
+     begin
+          for strpos:= 1 to length(str) do
+          for fontpos:= 0 to 7 do
+          begin
+               fontchr:=mem[$FFA6:$E+(ord(str[strpos]) shl 3)+fontpos];
+               for bitpos:= 7 downto 0 do
+               if (fontchr and (1 shl bitpos)) <> 0 then
+               for a:= 1 to scx do
+               for b:= 1 to scy do
+               begin
+                    putpixel(a+round(x+(strpos*(8*scx))+(scx*(bitpos))-8),b+round(y+(scy*fontpos)),c);
+               end;
+          End;
+     end;
+end;
+
+procedure outtextxygrind(x, y : integer; scx, scy : byte; c : byte; str : string; m : boolean);
+
+var
+  strpos : byte;
+  fontchr : byte;
+  fontpos : byte;
+  bitpos : byte;
+  a, b : integer;
+
+begin
+     if m=false then
+     begin
+          for strpos:= 1 to length(str) do
+          for fontpos:= 0 to 7 do
+          begin
+               fontchr:=mem[$FFA6:$E+(ord(str[strpos]) shl 3)+fontpos];
+               for bitpos:= 7 downto 0 do
+               if (fontchr and (1 shl bitpos)) <> 0 then
+               for a:= 1 to scx do
+               for b:= 1 to scy do
+               begin
+                    putpixel(a+round(x+(strpos*(8*scx))+(scx*(8-bitpos))-8),b+round(y+(scy*fontpos)),c);
+                    grind(a+round(x+(strpos*(8*scx))+(scx*(8-bitpos))-8),b+round(y+(scy*fontpos)),
+                    a+round(x+(strpos*(8*scx))+(scx*(8-bitpos))-8),b+round(y+(scy*fontpos)));
+               end;
+          end;
+     end;
+     if m=true then
+     begin
+          for strpos:= 1 to length(str) do
+          for fontpos:= 0 to 7 do
+          begin
+               fontchr:=mem[$FFA6:$E+(ord(str[strpos]) shl 3)+fontpos];
+               for bitpos:= 7 downto 0 do
+               if (fontchr and (1 shl bitpos)) <> 0 then
+               for a:= 1 to scx do
+               for b:= 1 to scy do
+               begin
+                    putpixel(a+round(x+(strpos*(8*scx))+(scx*(bitpos))-8),b+round(y+(scy*fontpos)),c);
+                    grind(a+round(x+(strpos*(8*scx))+(scx*(bitpos))-8),b+round(y+(scy*fontpos)),
+                    a+round(x+(strpos*(8*scx))+(scx*(bitpos))-8),b+round(y+(scy*fontpos)));
+               end;
+          End;
+     end;
+end;
+
+procedure line(x1, y1, x2, y2 : integer; c : byte);
+
+function sgn(x : integer) : integer;
+begin
+     sgn:=0;
+     if x<0 then sgn:=-1 else if x>0 then sgn:=1;
+end;
+
+var
+   licznik, xs, ys, kierunekX, kierunekY : integer;
+
+begin
+     xs:=x2-x1;
+     ys:=y2-y1;
+     kierunekx:=sgn(xs);
+     kieruneky:=sgn(ys);
+     xs:=abs(xs);
+     ys:=abs(ys);
+     putpixel(x1,y1,c);
+     if xs>ys Then
+     begin
+          licznik:=-(xs div 2);
+          while (x1 <> x2 ) do
+          begin
+               inc(licznik,ys);
+               inc(x1,kierunekx);
+               if licznik>0 then
+               begin
+                    inc(y1,kieruneky);
+                    dec(licznik,xs);
+               end;
+               putpixel(x1,y1,c);
+          end;
+     end
+     else
+         begin
+              licznik:=-(ys div 2);
+              while (y1 <> y2 ) do
+              begin
+                   inc(licznik,xs);
+                   inc(y1,kieruneky);
+                   if licznik>0 then begin
+                   x1:=x1+kierunekx;
+                   dec(licznik,ys);
+              end;
+              putpixel(x1,y1,c);
+         end;
+     end;
+end;
+
+procedure bar(x, y, d, s : integer; color : byte);
+
+var
+   b : integer;
+
+begin
+     for b:= y to s do
+     begin
+          hline(x,d,b,color);
+     end;
+end;
+
+procedure box(x, y, r : integer; c1, c2 : byte; full : boolean);
+begin
+     if full then
+     begin
+          bar(x,y,x+r,y+r,c2);
+          rectangle(x,y,x+r,y+r,c1);
+     end;
+     if not full then
+     begin
+          rectangle(x,y,x+r,y+r,c1);
+     end;
+end;
+
+procedure rectangle(x, y, d, s : integer; kolor : byte);
+begin
+     line(x,y,d,y,kolor);
+     line(x,s,d,s,kolor);
+     line(x,y,x,s,kolor);
+     line(d,y,d,s,kolor);
+end;
+
+procedure ellipse(exc, eyc, ea, eb, color : integer);
+
+var
+  elx, ely : integer;
+  aa, aa2, bb, bb2, d, dx, dy : longint;
+
+begin
+  elx := 0; ely := eb; aa := longint(ea) * ea; aa2 := 2 * aa;
+  bb := longint(eb) * eb; bb2 := 2 * bb;
+  d := bb - aa * eb + aa div 4; dx := 0; dy := aa2 * eb;
+  putpixel(exc, eyc - ely, color); putpixel(exc, eyc + ely, color);
+  putpixel(exc - ea, eyc, color); putpixel(exc + ea, eyc, color);
+  while (dx < dy) do begin
+    if (d > 0) then begin dec(ely); dec(dy, aa2); dec(d, dy); end;
+    inc(elx); inc(dx, bb2); inc(d, bb + dx);
+    putpixel(exc + elx, eyc + ely, color);
+    putpixel(exc - elx, eyc + ely, color);
+    putpixel(exc + elx, eyc - ely, color);
+    putpixel(exc - elx, eyc - ely, color);
+  end;
+  inc(d, (3 * (aa - bb) div 2 - (dx + dy)) div 2);
+  while (ely > 0) do begin
+    if (d < 0) then begin inc(elx); inc(dx, bb2); inc(d, bb + dx); end;
+    dec(ely); dec(dy, aa2); inc(d, aa - dy);
+    putpixel(exc + elx, eyc + ely, color);
+    putpixel(exc - elx, eyc + ely, color);
+    putpixel(exc + elx, eyc - ely, color);
+    putpixel(exc - elx, eyc - ely, color);
+  end;
+end;
+
+procedure circle(exc, eyc, e, color : integer);
+begin
+     ellipse(exc,eyc,e,e,color);
+end;
+
+procedure setcolor(col : byte; r, g, b : byte);
+begin
+     port[$3C8]:=col;
+     port[$3C9]:=r;
+     port[$3C9]:=g;
+     port[$3C9]:=b;
+end;
+
+procedure getcolor(col : byte; var r, g, b : byte);
+begin
+     port[$3C7]:=col;
+     r:=port[$3C9];
+     g:=port[$3C9];
+     b:=port[$3C9];
+end;
+
+Procedure StrText(Xx, Yy, Ods, Tlo, Kolor, Ile : Integer; Var Tekst : String; W : StrType);
+
+Var
+   X, Y, T : Integer;
+   Z : Char;
+
+Begin
+     If W=Normal then
+     Begin
+          X:=Xx;
+          Y:=Yy;
+          Tekst:='';
+          For T:=1 to Ile+1 do
+          begin
+               If T=Ile+1 then
+               begin
+                    repeat
+                          Z:=ReadKey;
+                    Until (Ord(Z)=8) or (Z=#13);
+               end else Z:=ReadKey;
+               If (Z=#8) and (Tekst<>'') then
+               begin
+                    Bar(X-Ods+1,Y,X-Ods+8,Y+8,Tlo);
+                    X:=X-Ods;
+                    T:=T-1;
+                    Delete(Tekst,T,1);
+                    PokazGrafike;
+               end;
+               If Ord(Z) in [32..128] then
+               begin
+                    OutTextXY(X,Y,1,1,Kolor,Z,False);
+                    X:=X+Ods;
+                    Tekst:=Tekst+Z;
+                    PokazGrafike;
+               end
+               else
+               T:=T-1;
+               If Z=#13 then T:=Ile+1;
+          End;
+     End;
+     If W=Hide then
+     Begin
+          X:=Xx;
+          Y:=Yy;
+          Tekst:='';
+          For T:=1 to Ile+1 do
+          begin
+               If T=Ile+1 then
+               begin
+                    repeat
+                          Z:=ReadKey;
+                    Until (Ord(Z)=8) or (Z=#13);
+               end else Z:=ReadKey;
+               If (Z=#8) and (Tekst<>'') then
+               begin
+                    Bar(X-1-Ods+10,Y,X-1-Ods+17,Y+7,Tlo);
+                    X:=X-Ods;
+                    T:=T-1;
+                    Delete(Tekst,T,1);
+                    PokazGrafike;
+               end;
+               If Ord(Z) in [32..128] then
+               begin
+                    OutTextXY(X,Y,1,1,Kolor,'*',False);
+                    X:=X+Ods;
+                    Tekst:=Tekst+Z;
+                    PokazGrafike;
+               end
+               else
+               T:=T-1;
+               If Z=#13 then T:=Ile+1;
+          End;
+     End;
+End;
+
+Procedure FadeUp(Pal : Tpalette; Ile : Word);
+
+Var
+   I, J : Byte;
+   Tmp : Array [1..3] of Byte;
+
+Begin
+     For I:= 1 to 64 do
+     Begin
+          delay(ile);
+          For J := 0 to 255 do
+          Begin
+               GetColor(J, Tmp[1], Tmp[2], Tmp[3]);
+               If Tmp[1] < Pal[J, 1] then Inc(Tmp[1]);
+               If Tmp[2] < Pal[J, 2] then Inc(Tmp[2]);
+               If Tmp[3] < Pal[J, 3] then Inc(Tmp[3]);
+               SetColor(J, Tmp[1], Tmp[2], Tmp[3]);
+          End;
+     End;
+END;
+
+Procedure FadeDown(Ile : Word);
+
+Var
+   I, J : Byte;
+   Tmp : Array [1..3] of Byte;
+
+Begin
+     For I := 1 to 64 do
+     Begin
+          delay(ile);
+          For J := 0 to 255 do
+          Begin
+               GetColor(J, Tmp[1], Tmp[2], Tmp[3]);
+               If Tmp[1] > 0 then Dec(Tmp[1]);
+               If Tmp[2] > 0 then Dec(Tmp[2]);
+               If Tmp[3] > 0 then Dec(Tmp[3]);
+               SetColor(J, Tmp[1], Tmp[2], Tmp[3]);
+          End;
+     End;
+End;
+
+Var
+   Fc, Fbak : Byte;
+   Kolejka : Array [0..3000] of Record X,Y : Integer; End;
+   Ilosc, Kolpos : Integer;
+
+Procedure Usun(Pos : Integer);
+Begin
+     Kolejka[Pos]:=Kolejka[Ilosc];
+     Dec(Ilosc);
+End;
+
+Procedure Dodaj(X, Y : Integer);
+Var
+   I : Integer;
+   Bylo : Boolean;
+
+Begin
+     Bylo:=False;
+     If Ilosc>0 then
+     For I:= 1 to Ilosc do
+     Begin
+          If (Kolejka[I].X=X) and (Kolejka[I].Y=Y) then Bylo:=True;
+     End;
+     If Not Bylo then
+     Begin
+          Inc(Ilosc);
+          Kolejka[Ilosc].X:=X;
+          Kolejka[Ilosc].Y:=Y;
+     End;
+End;
+
+Procedure Ffill;
+
+Var
+   X, Y : Integer;
+
+Begin
+     X:=Kolejka[Kolpos].X;
+     Y:=Kolejka[Kolpos].Y;
+     PutPixel(X,Y,Fc);
+     Usun(Kolpos);
+     If (x>0) and (y>0) and (x<320) and (y<200) then
+     Begin
+          If GetPixel(X+1,Y)=Fbak then Dodaj(X+1,Y);
+          If GetPixel(X,Y-1)=Fbak then Dodaj(X,Y-1);
+          If GetPixel(X,Y+1)=Fbak then Dodaj(X,Y+1);
+          If GetPixel(X-1,Y)=Fbak then Dodaj(X-1,Y);
+     End;
+End;
+
+Procedure Flood(X, Y : Integer; Col : Byte);
+
+Var
+   I : Integer;
+   A, B : Integer;
+
+Begin
+     if getpixel(x,y)=col then
+     begin
+     end else
+     begin
+     Fbak:=GetPixel(X,Y);
+     Fc:=Col;
+     Kolejka[1].X:=X;
+     Kolejka[1].Y:=Y;
+     Ilosc:=1;
+     Kolpos:=1;
+     Repeat
+           Kolpos:=(Round(Kolpos*5.2) + 113) mod Ilosc +1;
+           Ffill;
+     Until (Ilosc=0) or (Ilosc=12999);
+     end;
+End;
+
+Procedure SaveToPaintFile(X, Y, D, S : Integer; Name : String);
+
+Var
+   F : File of Byte;
+   B : Byte;
+   Ax, Ay : Integer;
+
+Begin
+     Assign(F,Name);
+     Rewrite(F);
+     B:=D-X;
+     If B>199 then
+     Begin
+          CloseGfx13h;
+          Write('SCREEN FILE: (MAXX AND MAXY) < 200');
+          Halt;
+     End;
+     Write(F,B);
+     B:=S-Y;
+     If B>199 then
+     Begin
+          CloseGfx13h;
+          Write('SCREEN FILE: (MAXX AND MAXY) < 200');
+          Halt;
+     End;
+     Write(F,B);
+     For Ay:= Y to S do
+     For Ax:= X to D do
+     Begin
+          B:=GetPixel(Ax,Ay);
+          Write(F,B);
+     End;
+     Close(F);
+End;
+
+Procedure OpenPaintFile(X, Y : Integer; Name : String);
+
+Var
+   F : File of Byte;
+   B : Byte;
+   Ax, Ay : Integer;
+   Rx, Ry : Byte;
+
+Begin
+     Assign(F,Name);
+     Reset(F);
+     Read(F,Rx);
+     Read(F,Ry);
+     For Ay:= 0 to Ry-1 do
+     For Ax:= 0 to Rx-1 do
+     Begin
+          Read(F,B);
+          PutPixel(Ax+X,Ay+Y-1,B);
+     End;
+     Close(F);
+End;
+
+Function PaintDefX(Name : String) : Byte;
+
+Var
+   F : File of Byte;
+   Rx, Ry : Byte;
+
+Begin
+     Assign(F,Name);
+     Reset(F);
+     Read(F,Rx);
+     PaintDefX:=Rx;
+     Read(F,Ry);
+     Close(F);
+End;
+
+Function PaintDefY(Name : String) : Byte;
+
+Var
+   F : File of Byte;
+   Rx, Ry : Byte;
+
+Begin
+     Assign(F,Name);
+     Reset(F);
+     Read(F,Rx);
+     Read(F,Ry);
+     PaintDefY:=Ry;
+     Close(F);
+End;
+
+Procedure SetPal(Pal : Tpalette);
+
+Var
+   X : Byte;
+
+Begin
+     For X:= 0 to 255 do SetColor(X,Pal[X,1],Pal[X,2],Pal[X,3]);
+END;
+
+Procedure GetPal(Var Pal : Tpalette);
+
+Var
+   X, R, G, B : Byte;
+
+Begin
+     For X:= 0 to 255 do
+     Begin
+          GetColor(X,R,G,B);
+          Pal[X,1]:=R;
+          Pal[X,2]:=G;
+          Pal[X,3]:=B;
+     End;
+End;
+
+Procedure LoadPal(FileName: String);
+
+Var
+   PalFile : File oF Tpalette;
+   Pal : TPalette;
+
+Begin
+     Assign(PalFile, FileName);
+     Reset(PalFile);
+     Read(PalFile, Pal);
+     Close(PalFile);
+     SetPal(Pal);
+End;
+
+Procedure SavePal(FileName: String);
+
+Var
+   PalFile : File of Tpalette;
+   Pal: Tpalette;
+
+Begin
+     GetPal(Pal);
+     Assign(PalFile, FileName);
+     Rewrite(PalFile);
+     Write(PalFile, Pal);
+     Close(PalFile);
+End;
+
+procedure opengfxfile(plik : string; tlo : byte);
+var
+   f : file;
+   b : array[0..319] of byte;
+   x, y : integer;
+begin
+     assign(f,plik);
+     reset(f,1);
+     for x:=0 to 199 do
+     begin
+          blockread(f,b,320);
+          for y:=0 to 319 do if b[y]<>tlo then putpixel(y,x,b[y]);
+     end;
+     close(f);
+end;
+
+procedure savegfxfile(plik : string);
+var
+   f : file;
+   b : array[0..319] of byte;
+   x, y : integer;
+begin
+     assign(f,plik);
+     rewrite(f,1);
+     for x:=0 to 199 do
+     begin
+          for y:=0 to 319 do b[y]:=getpixel(y,x);
+          blockwrite(f,b,320);
+     end;
+     close(f);
+end;
+
+var
+  ScanCode : Byte;
+
+function ReadEKey: Word; assembler;
+asm
+  mov ah, 10h
+  int 16h
+end;
+
+function ReadKey : Char;
+var
+  Ch: Word;
+begin
+  if ScanCode <> 0 then begin
+    ReadKey := Char(ScanCode);
+
+    ScanCode := 0;
+    exit;
+  end;
+  Ch := ReadEKey;
+  if Lo(Ch) = 0 then begin
+    ScanCode := Hi(Ch);
+    ReadKey := #0;
+    exit;
+  end;
+  ReadKey := Char(Lo(Ch));
+end;
+
+function keypressed : boolean; assembler;
+asm
+   mov bx,40h
+   mov es,bx
+   mov ax,word ptr es:[001Ch]
+   sub ax,word ptr es:[001Ah]
+end;
+
+function enterkey : boolean;
+
+var
+   key : char;
+
+begin
+     repeat
+           key:=readkey;
+     until key=#13;
+end;
+
+procedure delay(ile : word); assembler;
+asm
+   mov ax,1000
+   mul ile
+   mov cx,dx
+   mov dx,ax
+   mov ah,86h
+   int 15h
+end;
+
+procedure clearlayer;
+begin
+     fillchar(bufor^,320*200,0);
+end;
+
+procedure pokazgrafike;
+begin
+     move(bufor^,mem[$a000:0],64000);
+end;
+
+procedure pokazgrafike2; assembler;
+asm
+  push ds
+  les di,scr
+  lds si,bufor
+  mov cx,64000/4
+  db 66h
+  rep movsW
+  pop ds
+end;
+
+procedure cls(col : byte);
+begin
+     fillchar(bufor^,64000,col);
+end;
+
+procedure new_font(name : string; var fnt : Tfont);
+var
+   f : file of Tfont;
+begin
+     assign(f,name);
+     reset(f);
+     read(f,fnt);
+     close(f);
+end;
+
+procedure print_char(x, y : integer; col, ilecol, styl, typ, nr : byte; what : boolean; var fnt : Tfont);
+var
+   i, j : integer;
+begin
+     for i:= 1 to 8 do
+     for j:= 1 to 16 do
+     begin
+          if (fnt[nr,j,i]<>0) then
+          begin
+               if (styl=1) then {normal}
+               begin
+                    if typ=1 then
+                    begin
+                         if what=true then putpixel(i+x-1,j+y,j+ilecol);
+                         if what=false then putpixel(i+x-1,j+y,col);
+                    end;
+               end;
+               if styl=2 then {italic}
+               begin
+                    if what=true then
+                    begin
+                         if typ=1 then putpixel(i+x-j div 2+7,j+y,j+ilecol);
+                         if typ=2 then putpixel(i+x-j div 3+4,j+y,j+ilecol);
+                         if typ=3 then putpixel(i+x-j div 4+3,j+y,j+ilecol);
+                         if typ=4 then putpixel(i+x-j div 5+2,j+y,j+ilecol);
+                         if typ=5 then putpixel(i+x-j div 6+1,j+y,j+ilecol);
+                         if typ=6 then putpixel(i+x+j div 2-1,j+y,j+ilecol);
+                         if typ=7 then putpixel(i+x+j div 3-1,j+y,j+ilecol);
+                         if typ=8 then putpixel(i+x+j div 4-1,j+y,j+ilecol);
+                         if typ=9 then putpixel(i+x+j div 5-1,j+y,j+ilecol);
+                         if typ=10 then putpixel(i+x+j div 6-1,j+y,j+ilecol)
+                    end;
+                    if what=false then
+                    begin
+                         if typ=1 then putpixel(i+x-j div 2+7,j+y,col);
+                         if typ=2 then putpixel(i+x-j div 3+4,j+y,col);
+                         if typ=3 then putpixel(i+x-j div 4+3,j+y,col);
+                         if typ=4 then putpixel(i+x-j div 5+2,j+y,col);
+                         if typ=5 then putpixel(i+x-j div 6+1,j+y,col);
+                         if typ=6 then putpixel(i+x+j div 2-1,j+y,col);
+                         if typ=7 then putpixel(i+x+j div 3-1,j+y,col);
+                         if typ=8 then putpixel(i+x+j div 4-1,j+y,col);
+                         if typ=9 then putpixel(i+x+j div 5-1,j+y,col);
+                         if typ=10 then putpixel(i+x+j div 6-1,j+y,col)
+                    end
+               end;
+               if (styl=3) then {bold}
+               begin
+                    if what=true then
+                    begin
+                         if typ=1 then
+                         begin
+                              putpixel(i+x-1,j+y,j+ilecol);
+                              putpixel(i+x,j+y,j+ilecol)
+                         end;
+                         if typ=2 then
+                         begin
+                              putpixel(i+x-1,j+y,j+ilecol);
+                              putpixel(i+x,j+y,j+ilecol);
+                              putpixel(i+x+1,j+y,j+ilecol);
+                              putpixel(i+x-1,j+y+1,j+ilecol);
+                              putpixel(i+x,j+y+1,j+ilecol);
+                              putpixel(i+x+1,j+y+1,j+ilecol)
+                         end;
+                         if typ=3 then
+                         begin
+                              putpixel(i+x-1,j+y,j+ilecol);
+                              putpixel(i+x,j+y,j+ilecol);
+                              putpixel(i+x+1,j+y,j+ilecol);
+                              putpixel(i+x+2,j+y,j+ilecol);
+                              putpixel(i+x-1,j+y+1,j+ilecol);
+                              putpixel(i+x,j+y+1,j+ilecol);
+                              putpixel(i+x+1,j+y+1,j+ilecol);
+                              putpixel(i+x+2,j+y+1,j+ilecol);
+                         end
+                    end;
+                    if what=false then
+                    begin
+                         if typ=1 then
+                         begin
+                              putpixel(i+x-1,j+y,col);
+                              putpixel(i+x,j+y,col)
+                         end;
+                         if typ=2 then
+                         begin
+                              putpixel(i+x-1,j+y,col);
+                              putpixel(i+x,j+y,col);
+                              putpixel(i+x+1,j+y,col);
+                              putpixel(i+x-1,j+y+1,col);
+                              putpixel(i+x,j+y+1,col);
+                              putpixel(i+x+1,j+y+1,col)
+                         end;
+                         if typ=3 then
+                         begin
+                              putpixel(i+x-1,j+y,col);
+                              putpixel(i+x,j+y,col);
+                              putpixel(i+x+1,j+y,col);
+                              putpixel(i+x+2,j+y,col);
+                              putpixel(i+x-1,j+y+1,col);
+                              putpixel(i+x,j+y+1,col);
+                              putpixel(i+x+1,j+y+1,col);
+                              putpixel(i+x+2,j+y+1,col);
+                         end
+                    end
+               end;
+               if (styl=4) then {bold italic}
+               begin
+                    if what=true then
+                    begin
+                         if typ=1 then
+                         begin
+                              putpixel(i+x-1-j div 2+8,j+y,j+ilecol);
+                              putpixel(i+x-j div 2+8,j+y,j+ilecol)
+                         end;
+                         if typ=2 then
+                         begin
+                              putpixel(i+x-1-j div 3+5,j+y,j+ilecol);
+                              putpixel(i+x-j div 3+5,j+y,j+ilecol)
+                         end;
+                         if typ=3 then
+                         begin
+                              putpixel(i+x-1-j div 4+4,j+y,j+ilecol);
+                              putpixel(i+x-j div 4+4,j+y,j+ilecol)
+                         end;
+                         if typ=4 then
+                         begin
+                              putpixel(i+x-1-j div 5+3,j+y,j+ilecol);
+                              putpixel(i+x-j div 5+3,j+y,j+ilecol)
+                         end;
+                         if typ=5 then
+                         begin
+                              putpixel(i+x-1-j div 6+2,j+y,j+ilecol);
+                              putpixel(i+x-j div 6+2,j+y,j+ilecol)
+                         end;
+                         if typ=6 then
+                         begin
+                              putpixel(i+x-1+j div 2,j+y,j+ilecol);
+                              putpixel(i+x+j div 2,j+y,j+ilecol)
+                         end;
+                         if typ=7 then
+                         begin
+                              putpixel(i+x-1+j div 3,j+y,j+ilecol);
+                              putpixel(i+x+j div 3,j+y,j+ilecol)
+                         end;
+                         if typ=8 then
+                         begin
+                              putpixel(i+x-1+j div 4,j+y,j+ilecol);
+                              putpixel(i+x+j div 4,j+y,j+ilecol)
+                         end;
+                         if typ=9 then
+                         begin
+                              putpixel(i+x-1+j div 5,j+y,j+ilecol);
+                              putpixel(i+x+j div 5,j+y,j+ilecol)
+                         end;
+                         if typ=10 then
+                         begin
+                              putpixel(i+x-1+j div 6,j+y,j+ilecol);
+                              putpixel(i+x+j div 6,j+y,j+ilecol)
+                         end;
+                    end;
+                    if what=false then
+                    begin
+                         if typ=1 then
+                         begin
+                              putpixel(i+x-1-j div 2+8,j+y,col);
+                              putpixel(i+x-j div 2+8,j+y,col)
+                         end;
+                         if typ=2 then
+                         begin
+                              putpixel(i+x-1-j div 3+5,j+y,col);
+                              putpixel(i+x-j div 3+5,j+y,col)
+                         end;
+                         if typ=3 then
+                         begin
+                              putpixel(i+x-1-j div 4+4,j+y,col);
+                              putpixel(i+x-j div 4+4,j+y,col)
+                         end;
+                         if typ=4 then
+                         begin
+                              putpixel(i+x-1-j div 5+3,j+y,col);
+                              putpixel(i+x-j div 5+3,j+y,col)
+                         end;
+                         if typ=5 then
+                         begin
+                              putpixel(i+x-1-j div 6+2,j+y,col);
+                              putpixel(i+x-j div 6+2,j+y,col)
+                         end;
+                         if typ=6 then
+                         begin
+                              putpixel(i+x-1+j div 2,j+y,col);
+                              putpixel(i+x+j div 2,j+y,col)
+                         end;
+                         if typ=7 then
+                         begin
+                              putpixel(i+x-1+j div 3,j+y,col);
+                              putpixel(i+x+j div 3,j+y,col)
+                         end;
+                         if typ=8 then
+                         begin
+                              putpixel(i+x-1+j div 4,j+y,col);
+                              putpixel(i+x+j div 4,j+y,col)
+                         end;
+                         if typ=9 then
+                         begin
+                              putpixel(i+x-1+j div 5,j+y,col);
+                              putpixel(i+x+j div 5,j+y,col)
+                         end;
+                         if typ=10 then
+                         begin
+                              putpixel(i+x-1+j div 6,j+y,col);
+                              putpixel(i+x+j div 6,j+y,col)
+                         end
+                    end
+               end
+          end
+     end
+end;
+
+procedure outtextfntxy(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          print_char(x+i-o-1,y-1,col,0,styl,typ,ord(text[i]),false,fnt);
+     end;
+end;
+
+procedure outtextfntxy_center(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          print_char(x-length(text)*o div 2+i-2,y-1,col,0,styl,typ,ord(text[i]),false,fnt);
+     end;
+end;
+
+procedure outtextfntxy_rainbow(x, y : integer; o, colile, styl, typ : byte; text : string; var fnt : Tfont);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          print_char(x+i-o-1,y-1,0,colile,styl,typ,ord(text[i]),true,fnt);
+     end;
+end;
+
+procedure outtextfntxy_rainbow_center(x, y : integer; o, colile, styl, typ : byte; text : string; var fnt : Tfont);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          print_char(x-length(text)*o div 2+i-2,y-1,0,colile,styl,typ,ord(text[i]),true,fnt);
+     end;
+end;
+
+function divide_number(number : word; divide : word) : boolean;
+var
+   i : word;
+begin
+     i:=number mod divide;
+     if i=0 then divide_number:=true {dzieli sie}
+            else divide_number:=false; {nie dzieli sie}
+end;
+
+procedure capslock(on:boolean);
+begin
+  if on then mem[$40:$17]:=mem[$40:$17] or $40
+    else
+  mem[$40:$17]:=mem[$40:$17] and $bf;
+end;
+
+procedure numlock(on:boolean);
+begin
+  if on then mem[$40:$17]:=mem[$40:$17] or $20
+    else
+  mem[$40:$17]:=mem[$40:$17] and $df;
+end;
+
+procedure scrolllock(on:boolean);
+begin
+  if on then mem[$40:$17]:=mem[$40:$17] or $10
+    else
+  mem[$40:$17]:=mem[$40:$17] and $ef;
+end;
+
+function capslockon:boolean;
+begin
+  capslockon:=mem[$0040:$0017] and $40=$40;
+end;
+
+function numlockon:boolean;
+begin
+  numlockon:=mem[$0040:$0017] and $20=$20;
+end;
+
+function scrollockon:boolean;
+begin
+  scrollockon:=mem[$0040:$0017] and $10=$10;
+end;
+
+Function NumStr(Number : Longint) : String;
+
+Var
+   Tekst : String;
+
+Begin
+     Str(Number,Tekst);
+     NumStr:=Tekst;
+End;
+
+Function NumStrReal(Number : Real; Ile : byte) : String;
+
+Var
+   Tekst : String;
+
+Begin
+     Str(Number:2:Ile,Tekst);
+     NumStrReal:=Tekst;
+End;
+
+Function NumStrBoolean(Opcja : Boolean) : String;
+Begin
+     If Opcja then NumStrBoolean:='1';
+     If Not Opcja then NumStrBoolean:='0';
+End;
+
+Function is_file(Plik : String) : Boolean;
+
+Var
+   F : File of Byte;
+
+Begin
+     {$I-}
+     Assign(F,Plik);
+     Reset(F);
+     Close(F);
+     {$I+}
+     is_file:=IOResult=0;
+End;
+
+procedure NoSound;assembler;
+asm   {OK}
+  in al,61h
+  and al,0fch
+  out 61h,al
+end;
+
+procedure Sound(hz:word);assembler;
+asm
+  mov bx,hz
+  mov ax,34ddh
+  mov dx,0012h
+  cmp dx,bx
+  jnc @2
+  div bx
+  mov bx,ax
+  in al,61h
+  test al,3
+  jnz @1
+  or al,3
+  out 61h,al
+  mov al,0b6h
+  out 43h,al
+@1:
+  mov al,bl
+  out 42h,al
+  mov al,bh
+  out 42h,al
+@2:
+end;
+
+procedure dzwiek(hz, mz : word);
+begin
+     sound(hz);
+     delay(mz);
+     nosound;
+end;
+
+function LeftButton : boolean; assembler;
+asm
+	mov	ax,3
+	int	$33
+	mov	ax,bx
+	and	ax,1
+end;
+
+function RightButton : boolean; assembler;
+asm
+	mov	ax,3
+	int	$33
+	mov	ax,bx
+	shr	ax,1
+	and	ax,1
+end;
+
+function InitMouse : boolean; assembler;
+asm
+	xor	ax,ax
+	int	$33
+	not	ax
+	xor	ax,1
+	and	ax,1
+end;
+
+procedure showmouse; assembler;
+asm
+	mov	ax,$0001
+	int	$33
+end;
+
+procedure hidemouse; assembler;
+asm
+	mov	ax,$0002
+	int	$33
+end;
+
+procedure SetMouseWindow(x1,y1,x2,y2 : integer);
+begin
+x1:=x1*2;
+x2:=x2*2;
+asm
+	mov	ax,$0007
+	mov	cx,x1
+	mov	dx,x2
+	int	$33
+	mov	ax,$0008
+	mov	cx,y1
+	mov	dx,y2
+	int	$33
+end;
+end;
+
+function mousex_ : word;assembler;
+asm
+  mov ax,3; int 33h; mov ax,cx
+end;
+
+function mousex : word;
+begin
+     mousex:=mousex_ div 2;
+end;
+
+function mousey : word; assembler;
+asm
+  mov ax,3; int 33h; mov ax,dx
+end;
+
+Procedure SetMousePos(X, Y : Integer);
+begin
+x:=x*2;
+Asm
+   Mov Ax, $0004
+   Mov Cx, X
+   Mov Dx, Y
+   Int $33
+End;
+end;
+
+Function Mousein(X, Y, X1, Y1, X2, Y2 : Integer) : Boolean;
+Begin
+     Mousein:=False;
+     If (X>X1-1) and (X<X2+1) and (Y>Y1-1) and (Y<Y2+1) then
+     Mousein:=True;
+End;
+
+var
+   tab : array[1..50,1..50] of byte;
+
+procedure copy_screen(x, y, mx, my : integer);
+var
+   i, j : integer;
+begin
+     for i:= 1 to 1+mx do
+     for j:= 1 to 1+my do tab[j,i]:=getpixel(j+x-1,i+y-1);
+end;
+
+procedure put_screen(x, y, mx, my : integer);
+var
+   i, j : integer;
+begin
+     for i:= 1 to 1+mx do
+     for j:= 1 to 1+my do putpixel(j+x-1,i+y-1,tab[j,i]);
+end;
+
+function getbit(zmienna : byte; nr : iloscbitow) : boolean;
+begin
+     getbit:=boolean(odd(zmienna shr nr));
+end;
+
+function setbit(zmienna : byte; nr : iloscbitow) : byte;
+begin
+     setbit:=zmienna or (1 shl nr);
+end;
+
+function clrbit(zmienna : byte; nr : iloscbitow) : byte;
+begin
+     clrbit:=zmienna and hi($FEFF shl nr);
+end;
+
+procedure new_font2(name : string; var font : Tfont2);
+var
+   f : file of Tfont2;
+begin
+     assign(f,name);
+     reset(f);
+     read(f,font);
+     close(f);
+end;
+
+procedure draw_char(x, y : integer; col, ilecol, styl, typ, nr : byte; what : boolean; var fnt : Tfont2);
+var
+   i, j : integer;
+begin
+     for j:= 0 to 15 do
+     for i:= 0 to 7 do
+     begin
+          if getbit(fnt[nr,j],i) then
+          begin
+               if (styl=1) then {normal}
+               begin
+                    if typ=1 then
+                    begin                  {putpixel(j+xx,i+yy,col);}
+                         if what=true then putpixel(i+x-1,j+y,j+ilecol);
+                         if what=false then putpixel(i+x-1,j+y,col);
+                    end;
+               end;
+               if styl=2 then {italic}
+               begin
+                    if what=true then
+                    begin
+                         if typ=1 then putpixel(i+x-j div 2+7,j+y,j+ilecol);
+                         if typ=2 then putpixel(i+x-j div 3+4,j+y,j+ilecol);
+                         if typ=3 then putpixel(i+x-j div 4+3,j+y,j+ilecol);
+                         if typ=4 then putpixel(i+x-j div 5+2,j+y,j+ilecol);
+                         if typ=5 then putpixel(i+x-j div 6+1,j+y,j+ilecol);
+                         if typ=6 then putpixel(i+x+j div 2-1,j+y,j+ilecol);
+                         if typ=7 then putpixel(i+x+j div 3-1,j+y,j+ilecol);
+                         if typ=8 then putpixel(i+x+j div 4-1,j+y,j+ilecol);
+                         if typ=9 then putpixel(i+x+j div 5-1,j+y,j+ilecol);
+                         if typ=10 then putpixel(i+x+j div 6-1,j+y,j+ilecol)
+                    end;
+                    if what=false then
+                    begin
+                         if typ=1 then putpixel(i+x-j div 2+7,j+y,col);
+                         if typ=2 then putpixel(i+x-j div 3+4,j+y,col);
+                         if typ=3 then putpixel(i+x-j div 4+3,j+y,col);
+                         if typ=4 then putpixel(i+x-j div 5+2,j+y,col);
+                         if typ=5 then putpixel(i+x-j div 6+1,j+y,col);
+                         if typ=6 then putpixel(i+x+j div 2-1,j+y,col);
+                         if typ=7 then putpixel(i+x+j div 3-1,j+y,col);
+                         if typ=8 then putpixel(i+x+j div 4-1,j+y,col);
+                         if typ=9 then putpixel(i+x+j div 5-1,j+y,col);
+                         if typ=10 then putpixel(i+x+j div 6-1,j+y,col)
+                    end
+               end;
+               if (styl=3) then {bold}
+               begin
+                    if what=true then
+                    begin
+                         if typ=1 then
+                         begin
+                              putpixel(i+x-1,j+y,j+ilecol);
+                              putpixel(i+x,j+y,j+ilecol)
+                         end;
+                         if typ=2 then
+                         begin
+                              putpixel(i+x-1,j+y,j+ilecol);
+                              putpixel(i+x,j+y,j+ilecol);
+                              putpixel(i+x+1,j+y,j+ilecol);
+                              putpixel(i+x-1,j+y+1,j+ilecol);
+                              putpixel(i+x,j+y+1,j+ilecol);
+                              putpixel(i+x+1,j+y+1,j+ilecol)
+                         end;
+                         if typ=3 then
+                         begin
+                              putpixel(i+x-1,j+y,j+ilecol);
+                              putpixel(i+x,j+y,j+ilecol);
+                              putpixel(i+x+1,j+y,j+ilecol);
+                              putpixel(i+x+2,j+y,j+ilecol);
+                              putpixel(i+x-1,j+y+1,j+ilecol);
+                              putpixel(i+x,j+y+1,j+ilecol);
+                              putpixel(i+x+1,j+y+1,j+ilecol);
+                              putpixel(i+x+2,j+y+1,j+ilecol);
+                         end
+                    end;
+                    if what=false then
+                    begin
+                         if typ=1 then
+                         begin
+                              putpixel(i+x-1,j+y,col);
+                              putpixel(i+x,j+y,col)
+                         end;
+                         if typ=2 then
+                         begin
+                              putpixel(i+x-1,j+y,col);
+                              putpixel(i+x,j+y,col);
+                              putpixel(i+x+1,j+y,col);
+                              putpixel(i+x-1,j+y+1,col);
+                              putpixel(i+x,j+y+1,col);
+                              putpixel(i+x+1,j+y+1,col)
+                         end;
+                         if typ=3 then
+                         begin
+                              putpixel(i+x-1,j+y,col);
+                              putpixel(i+x,j+y,col);
+                              putpixel(i+x+1,j+y,col);
+                              putpixel(i+x+2,j+y,col);
+                              putpixel(i+x-1,j+y+1,col);
+                              putpixel(i+x,j+y+1,col);
+                              putpixel(i+x+1,j+y+1,col);
+                              putpixel(i+x+2,j+y+1,col);
+                         end
+                    end
+               end;
+               if (styl=4) then {bold italic}
+               begin
+                    if what=true then
+                    begin
+                         if typ=1 then
+                         begin
+                              putpixel(i+x-1-j div 2+8,j+y,j+ilecol);
+                              putpixel(i+x-j div 2+8,j+y,j+ilecol)
+                         end;
+                         if typ=2 then
+                         begin
+                              putpixel(i+x-1-j div 3+5,j+y,j+ilecol);
+                              putpixel(i+x-j div 3+5,j+y,j+ilecol)
+                         end;
+                         if typ=3 then
+                         begin
+                              putpixel(i+x-1-j div 4+4,j+y,j+ilecol);
+                              putpixel(i+x-j div 4+4,j+y,j+ilecol)
+                         end;
+                         if typ=4 then
+                         begin
+                              putpixel(i+x-1-j div 5+3,j+y,j+ilecol);
+                              putpixel(i+x-j div 5+3,j+y,j+ilecol)
+                         end;
+                         if typ=5 then
+                         begin
+                              putpixel(i+x-1-j div 6+2,j+y,j+ilecol);
+                              putpixel(i+x-j div 6+2,j+y,j+ilecol)
+                         end;
+                         if typ=6 then
+                         begin
+                              putpixel(i+x-1+j div 2,j+y,j+ilecol);
+                              putpixel(i+x+j div 2,j+y,j+ilecol)
+                         end;
+                         if typ=7 then
+                         begin
+                              putpixel(i+x-1+j div 3,j+y,j+ilecol);
+                              putpixel(i+x+j div 3,j+y,j+ilecol)
+                         end;
+                         if typ=8 then
+                         begin
+                              putpixel(i+x-1+j div 4,j+y,j+ilecol);
+                              putpixel(i+x+j div 4,j+y,j+ilecol)
+                         end;
+                         if typ=9 then
+                         begin
+                              putpixel(i+x-1+j div 5,j+y,j+ilecol);
+                              putpixel(i+x+j div 5,j+y,j+ilecol)
+                         end;
+                         if typ=10 then
+                         begin
+                              putpixel(i+x-1+j div 6,j+y,j+ilecol);
+                              putpixel(i+x+j div 6,j+y,j+ilecol)
+                         end;
+                    end;
+                    if what=false then
+                    begin
+                         if typ=1 then
+                         begin
+                              putpixel(i+x-1-j div 2+8,j+y,col);
+                              putpixel(i+x-j div 2+8,j+y,col)
+                         end;
+                         if typ=2 then
+                         begin
+                              putpixel(i+x-1-j div 3+5,j+y,col);
+                              putpixel(i+x-j div 3+5,j+y,col)
+                         end;
+                         if typ=3 then
+                         begin
+                              putpixel(i+x-1-j div 4+4,j+y,col);
+                              putpixel(i+x-j div 4+4,j+y,col)
+                         end;
+                         if typ=4 then
+                         begin
+                              putpixel(i+x-1-j div 5+3,j+y,col);
+                              putpixel(i+x-j div 5+3,j+y,col)
+                         end;
+                         if typ=5 then
+                         begin
+                              putpixel(i+x-1-j div 6+2,j+y,col);
+                              putpixel(i+x-j div 6+2,j+y,col)
+                         end;
+                         if typ=6 then
+                         begin
+                              putpixel(i+x-1+j div 2,j+y,col);
+                              putpixel(i+x+j div 2,j+y,col)
+                         end;
+                         if typ=7 then
+                         begin
+                              putpixel(i+x-1+j div 3,j+y,col);
+                              putpixel(i+x+j div 3,j+y,col)
+                         end;
+                         if typ=8 then
+                         begin
+                              putpixel(i+x-1+j div 4,j+y,col);
+                              putpixel(i+x+j div 4,j+y,col)
+                         end;
+                         if typ=9 then
+                         begin
+                              putpixel(i+x-1+j div 5,j+y,col);
+                              putpixel(i+x+j div 5,j+y,col)
+                         end;
+                         if typ=10 then
+                         begin
+                              putpixel(i+x-1+j div 6,j+y,col);
+                              putpixel(i+x+j div 6,j+y,col)
+                         end
+                    end
+               end
+          end
+     end
+end;
+
+procedure outtextfntxy2(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont2);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          draw_char(i*o+x,y,col,0,styl,typ,ord(text[i]),false,fnt);
+     end;
+end;
+
+procedure outtextfntxy2_rainbow(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont2);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          draw_char(x+i-o,y-1,0,col+1,styl,typ,ord(text[i]),true,fnt);
+
+{          draw_char(i*(o+1)+x-8,y,0,col+1,styl,typ,ord(text[i]),true,fnt);}
+     end;
+end;
+
+procedure outtextfntxy2_center(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont2);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          draw_char(x-length(text)*o div 2+i-2,y,col,0,styl,typ,ord(text[i]),false,fnt);
+     end;
+end;
+
+procedure outtextfntxy2_rainbow_center(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont2);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          draw_char(x-length(text)*o div 2+i-2,y,0,col+1,styl,typ,ord(text[i]),true,fnt);
+     end;
+end;
+
+
+{procedure outtextfntxy2_center(x, y : integer; o, col, styl, typ : byte; text : string; var fnt : Tfont);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          draw_char(x-length(text)*2+i-1,y-1,col,0,styl,typ,ord(text[i]),false,fnt);
+          draw_char(i*o+x,y,col,styl,typ,ord(text[i]),fnt);
+     end;
+end;
+
+procedure outtextfntxy_rainbow(x, y : integer; o, colile, styl, typ : byte; text : string; var fnt : Tfont);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          print_char(x+i-o-1,y-1,0,colile,styl,typ,ord(text[i]),true,fnt);
+     end;
+end;
+
+procedure outtextfntxy_rainbow_center(x, y : integer; o, colile, styl, typ : byte; text : string; var fnt : Tfont);
+var
+   i : integer;
+begin
+     for i:= 1 to length(text) do
+     begin
+          x:=x+o;
+          print_char(x-length(text)*2+i-o-1,y-1,0,colile,styl,typ,ord(text[i]),true,fnt);
+     end;
+end;}
+
+Procedure SaveRaw(FileName : String);
+
+Var
+   F : File;
+   Pal : Tpalette;
+
+Begin
+     GetPal(Pal);
+     Assign(F,FileName);
+     Rewrite(F,1);
+     BlockWrite(F,Pal,768);
+     BlockWrite(F,bufor^,64000);
+     Close(F);
+end;
+
+Procedure LoadRaw(FileName : String; C1, C2 : Byte);
+
+Var
+   F : File;
+   Pal : Tpalette;
+   I : integer;
+
+
+Begin
+     Assign(F,FileName);
+     Reset(F,1);
+     Blockread(F,Pal,768);
+     For I:= C1 To C2 do SetColor(I,Pal[I][1],Pal[I][2],Pal[I][3]);
+     BlockRead(F,bufor^,64000);
+     Close(F);
+End;
+
+procedure draw_normal_cur(mx, my : integer; c1, c2 : byte);
+var i, j : integer;
+begin
+     for i:= 1 to 9 do
+     for j:= 1 to 9 do if cur[i,j]<>0 then
+     begin
+          if cur[i,j]=1 then cur[i,j]:=c1;
+          if cur[i,j]=2 then cur[i,j]:=c2;
+          putpixel(j+mx-1,i+my-1,cur[i,j]);
+     end;
+end;
+
+procedure pobierz_ekran_do(x, y, d, s : integer; var tab : ekran);
+var
+   i, j : integer;
+begin
+     for i:= x to d do
+     for j:= y to s do tab[j*320+i]:=getpixel(i,j);
+end;
+
+procedure draw_random(x, y, d, s : integer; var tab : ekran; col : byte; b : boolean);
+var
+   i, j, a : integer;
+begin
+     for i:= x to d do
+     begin
+          j:=y+random(y+s);
+          if b then begin putpixel(i,j,tab[j*320+i]) end else
+          putpixel(i,j,tab[j*320+i]);
+     end;
+end;
+
+procedure rysuj_ekran(x, y, d, s : integer; var tab : ekran; col : byte; b : boolean);
+var
+   i, j : integer;
+begin
+     for i:= x to d do
+     for j:= y to s do
+     begin
+          if b then begin putpixel(i,j,tab[j*320+i]) end else
+          putpixel(i,j,tab[j*320+i]);
+     end;
+end;
+
+procedure czysc_bufor(var buf : ekran; nr : byte);
+var i : word;
+begin
+     for i:= 0 to 63999 do buf[i]:=nr;
+end;
+
+procedure polygon(x1, y1, x2, y2, x3, y3, x4, y4 : integer; color : byte);
+var
+ counter : integer;
+ Ymin, Ymax : integer;
+ polygon : Array[0..199,1..2] of integer;
+
+Procedure ScanPolySide(X1,Y1,X2,Y2 : integer);
+var
+ DeltaX : integer;
+ temp : integer;
+ Xposfixed,Xpos : integer;
+ counter : integer;
+begin
+  if Y2=Y1 then exit;
+  if (Y2<Y1) then
+               begin
+                 temp := Y1;
+                 Y1 := Y2;
+                 Y2 := temp;
+
+                 temp := X1;
+                 X1 := X2;
+                 X2 := temp;
+               end;
+
+  DeltaX := ((X2-X1) shl 7) div (Y2-Y1);
+  Xposfixed := X1 shl 7;
+    for counter := Y1 to Y2 do
+         begin
+           Xpos := XposFixed shr 7;
+           if (Xpos < polygon[counter,1]) then polygon[counter,1] := Xpos;
+           if (Xpos > polygon[counter,2]) then polygon[counter,2] := Xpos;
+           Xposfixed := XposFixed + DeltaX;
+         end;
+end;
+
+
+begin
+ Ymin := Y1;
+ Ymax := Y1;
+ if (Y2 < Ymin) then Ymin := Y2;
+ if (Y2 > Ymax) then Ymax := Y2;
+ if (Y3 < Ymin) then Ymin := Y3;
+ if (Y3 > Ymax) then Ymax := Y3;
+ if (Y4 < Ymin) then Ymin := Y4;
+ if (Y4 > Ymax) then Ymax := Y4;
+ if (Ymin < 0) then Ymin := 0;
+ if (Ymax > 199) then Ymax := 199;
+
+ for counter := 0 to 199 do
+   begin
+     polygon[counter,1] := 32000;
+     polygon[counter,2] := -32000;
+   end;
+ ScanPolySide(X1,Y1,X2,Y2);
+ ScanPolySide(X2,Y2,X3,Y3);
+ ScanPolySide(X3,Y3,X4,Y4);
+ ScanPolySide(X4,Y4,X1,Y1);
+
+ for counter := Ymin to Ymax do
+    hline(polygon[counter,1],polygon[counter,2],counter,color);
+end;
+
+procedure hline(x1, x2, y : integer; c : byte);
+var i : integer;
+begin
+     for i:= x1 to x2 do bufor^[y*320+i]:=c;
+end;
+procedure vline(x, y1, y2 : integer; c : byte);
+var i : integer;
+begin
+     for i:= y1 to y2 do bufor^[i*320+x]:=c;
+end;
+
+PROCEDURE WaitRetrace;
+Assembler;
+label l1,l2;
+
+asm
+ mov dx,3DAh
+l1:
+  in al,dx
+  and al,08h
+  jnz l1
+l2:
+  in al,dx
+  and al,08h
+  jz l2
+END;
+
+procedure rotate_sprite(k : real; var tab : tsprite; x, y, maxx, maxy : integer; hidecol : byte);
+var
+   i, j : integer;
+   a, b : integer;
+   kat : real;
+   sin_, cos_ : real;
+begin
+     kat:=k/rad;
+     sin_:=sin(kat);
+     cos_:=cos(kat);
+     for i:= -(maxx div 2)+1 to maxx div 2 do
+     for j:= -(maxy div 2)+1 to maxy div 2 do
+     begin
+          a:=round(cos_*i-sin_*j);
+          b:=round(sin_*i+cos_*j);
+          if tab[i+maxx div 2,j+maxy div 2]<>hidecol then
+          putpixel(x+a,y+b,tab[i+maxx div 2,j+maxy div 2]);
+     end;
+end;
+
+procedure save_sprite(x, y, d, s : spritexy; var tab : tsprite);
+var i, j : integer;
+begin
+     for i:= x to d do
+     for j:= y to s do tab[i,j]:=getpixel(i,j);
+end;
+
+function ile_procent_z(ile, z_ilu : real) : real;
+begin
+     ile_procent_z :=ile*z_ilu / 100;
+end;
+
+procedure scale_sprite(x, y, sizeimagex, sizeimagey, sizex, sizey : integer; var sprite : Tsprite);
+var
+   scx, scy : real;
+   i, j, xx, yy : byte;
+   a, b : integer;
+begin
+     scx:=sizeimagex/sizex;
+     scy:=sizeimagey/sizey;
+     for i:=1 to sizex do
+     for j:=1 to sizey do
+     begin
+          xx:=round(scx*i);
+          yy:=round(scy*j);
+          if xx>0 then if yy>0 then
+          if sprite[xx,yy]<>0 then putpixel(x+i,y+j,sprite[xx,yy]);
+     end;
+end;
+
+begin
+     new(bufor);
+     clearlayer;
+end.
